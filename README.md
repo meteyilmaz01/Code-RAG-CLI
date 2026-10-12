@@ -8,6 +8,11 @@ language, and get an answer that cites the files and line numbers it relied on.
 It is meant as a compact, readable reference for how a code question-answering pipeline fits together
 (scan, chunk, embed, hybrid search, answer), not as a replacement for mature tools like Aider or Continue.
 
+**About this project.** This is a learning project. I am building it to get hands-on experience with how
+retrieval-augmented generation works end to end, from chunking and embeddings to measuring retrieval
+quality, and to practise shipping a small tool properly (tests, packaging, documentation). See
+[What I learned](#what-i-learned). Feedback and suggestions are welcome.
+
 ```
 $ coderag ask "Which folders are always skipped when indexing, and what is the maximum file size?"
 ✓ Index updated (1 new, 1 changed, 0 removed files) (25.1 s)
@@ -87,6 +92,7 @@ coderag ask "How does incremental indexing work?" --path path/to/project
 | `--no-update` | Skip the automatic index refresh before answering |
 
 The index lives in `.coderag/` inside the indexed project. `python -m coderag` works too.
+`coderag --help` (or `-h`) lists the available commands with examples, and `coderag ask --help` shows every option.
 
 ### Choosing the LLM
 
@@ -163,9 +169,61 @@ question**, almost all of it LLM time.
 
 ```bash
 pip install -e ".[dev,ollama]"
-pytest                          # 57 tests, no model downloads needed
+pytest                          # runs without downloading any model
 python eval/run_eval.py --only 0   # retrieval quality; --only picks configurations
 ```
+
+## What I learned
+
+What building this project taught me, grouped by topic. Where it helps, the file that shows it is named.
+
+**Retrieval and RAG**
+- How a RAG pipeline fits together end to end: scan, chunk, embed, store, retrieve, generate (`coderag/core/`).
+- Why chunk boundaries matter: syntax-aware chunking with tree-sitter instead of cutting text at fixed
+  sizes (`chunker.py`), and falling back to a language-aware text splitter for other languages.
+- Embeddings and vector search: ONNX embeddings with fastembed and a persistent ChromaDB collection
+  using cosine distance (`vector_store.py`).
+- Hybrid retrieval: dense search misses exact identifiers, so I added BM25 over `camelCase` and `snake_case`
+  words and merged both rankings with Reciprocal Rank Fusion (`rag_engine.py`).
+- Cross-language retrieval: rewriting the question into an English query, grounded in real symbol names from
+  the index so the LLM stops inventing identifiers.
+- Re-ranking with a cross-encoder, and the lesson that it does not always help.
+
+**Measuring instead of guessing**
+- Building a small evaluation set and comparing every change with Recall@k and MRR (`eval/`).
+- Reporting negative results honestly (the reranker, the test-symbol filter), and recognising the limits
+  of a 16-question, self-written set and of run-to-run LLM variation.
+- Debugging retrieval by inspecting intermediate outputs (rewritten queries, retrieved chunks) rather than
+  only the final answer.
+
+**Working with LLMs**
+- Calling local and hosted models through LangChain, running a 7B model locally with Ollama, and what that
+  costs in latency.
+- Prompt design: numbering every code line so the model cites real line numbers instead of guessing them,
+  and restricting answers to the supplied snippets.
+- Streaming answers and showing step-by-step progress so a slow tool still feels responsive.
+
+**Software engineering**
+- Small single-purpose modules with injected dependencies (embedder, reranker and LLM are parameters), which
+  makes everything testable without downloading models.
+- Testing with pytest: fakes, monkeypatching and CLI tests with Typer's test runner.
+- Incremental indexing with SHA-256 file hashes, and `.gitignore` handling with `pathspec` (`scanner.py`, `indexer.py`).
+- Building a CLI with Typer and Rich: live status, streaming Markdown and useful `--help` output.
+- Packaging a Python project: `pyproject.toml`, a proper package layout, console entry points and optional
+  dependency groups.
+- Git hygiene: splitting interleaved work into separate commits, rebasing onto remote changes, and writing
+  commit messages that explain why.
+- Open-source basics: a license, a README that states limitations, and a `.gitignore`.
+- Windows details: CRLF/LF normalisation so line numbers and hashes stay stable, shell quoting and console encodings.
+
+**Mistakes that taught me something**
+- `BM25Okapi` returned negative scores on very small corpora, so keyword search found nothing; switching to
+  `BM25Plus` fixed it. Library assumptions deserve a test on tiny inputs.
+- A Turkish question could not find English-named code until I added query rewriting.
+- The model copied examples out of its own prompt and invented function names. Remove the examples and
+  ground the prompt in real data.
+- Test function names leaked into the symbol list and ended up in search queries.
+- Curly quotes pasted into the terminal silently broke a command.
 
 ## License
 

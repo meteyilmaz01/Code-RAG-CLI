@@ -9,6 +9,11 @@ Amacı, bir kod soru-cevap hattının nasıl bir araya geldiğini (tarama, parç
 cevap) gösteren kısa ve okunabilir bir referans olmak. Aider ya da Continue gibi olgun araçların alternatifi
 olma iddiası yok.
 
+**Bu proje hakkında.** Bu bir öğrenme projesi. Retrieval-augmented generation'ın baştan sona nasıl çalıştığını,
+parçalamadan embedding'e ve arama kalitesini ölçmeye kadar, uygulayarak öğrenmek ve küçük bir aracı düzgünce
+yayına hazırlamayı (test, paketleme, dokümantasyon) pratik etmek için geliştiriyorum. Bkz.
+[Kazanımlar](#kazanımlar). Geri bildirim ve önerilere açığım.
+
 ```
 $ coderag ask "Hangi klasörler indekslemede her zaman atlanıyor ve atlanan en büyük dosya boyutu nedir?"
 ✓ İndeks güncellendi (1 yeni, 1 güncellenen, 0 silinen dosya) (25.1 sn)
@@ -87,6 +92,7 @@ coderag ask "Artımlı indeksleme nasıl çalışıyor?" --path proje/yolu
 | `--no-update` | Cevaptan önceki otomatik indeks güncellemesini atlar |
 
 İndeks, indekslenen projenin içindeki `.coderag/` klasöründe durur. `python -m coderag` de çalışır.
+`coderag --help` (ya da `-h`) kullanılabilir komutları örnekleriyle listeler, `coderag ask --help` her seçeneği gösterir.
 CLI mesajları Türkçedir; soruyu LLM'in anladığı herhangi bir dilde sorabilirsin.
 
 ### LLM seçimi
@@ -163,9 +169,57 @@ yaklaşık bir dakika**, bunun neredeyse tamamı LLM süresi.
 
 ```bash
 pip install -e ".[dev,ollama]"
-pytest                          # 57 test, model indirmeden çalışır
+pytest                          # hiçbir model indirmeden çalışır
 python eval/run_eval.py --only 0   # arama kalitesi; --only ile yapılandırma seçilir
 ```
+
+## Kazanımlar
+
+Bu projeyi geliştirirken öğrendiklerim, konulara göre gruplandı. Gerektiğinde bunu gösteren dosya belirtildi.
+
+**Arama ve RAG**
+- Bir RAG hattının baştan sona nasıl birleştiği: tara, parçala, embedding üret, sakla, ara, cevap üret (`coderag/core/`).
+- Parça sınırlarının neden önemli olduğu: metni sabit boyutta kesmek yerine tree-sitter ile sözdizimine duyarlı
+  parçalama (`chunker.py`), diğer diller için dile duyarlı metin bölücüye geri düşme.
+- Embedding ve vektör arama: fastembed ile ONNX embedding, kosinüs mesafeli kalıcı bir ChromaDB koleksiyonu (`vector_store.py`).
+- Hibrit arama: yoğun arama tam tanımlayıcı adlarını kaçırdığı için `camelCase` ve `snake_case` kelimeler
+  üzerinde BM25 ekledim ve iki sıralamayı Reciprocal Rank Fusion ile birleştirdim (`rag_engine.py`).
+- Diller arası arama: soruyu İngilizce sorguya çevirmek ve LLM'in fonksiyon adı uydurmaması için çeviriyi
+  indeksteki gerçek sembol adlarıyla desteklemek.
+- Çapraz-kodlayıcı ile yeniden sıralama ve bunun her zaman işe yaramadığını görmek.
+
+**Tahmin etmek yerine ölçmek**
+- Küçük bir değerlendirme seti kurup her değişikliği Recall@k ve MRR ile karşılaştırmak (`eval/`).
+- Olumsuz sonuçları dürüstçe raporlamak (reranker, test-sembol filtresi); 16 soruluk, kendi yazdığım bir setin
+  ve LLM'in koşudan koşuya değişmesinin sınırlarını fark etmek.
+- Arama hatalarını yalnızca son cevaba değil, ara çıktılara (çevrilen sorgular, bulunan parçalar) bakarak ayıklamak.
+
+**LLM'lerle çalışmak**
+- Yerel ve bulut modelleri LangChain ile çağırmak, 7B bir modeli Ollama ile yerelde çalıştırmak ve bunun gecikme maliyeti.
+- Prompt tasarımı: modelin satır numarası uydurmaması için her kod satırını numaralamak ve cevabı verilen
+  parçalarla sınırlamak.
+- Cevabı akış hâlinde göstermek ve adım adım ilerleme vererek yavaş bir aracı hızlı hissettirmek.
+
+**Yazılım mühendisliği**
+- Tek işi yapan küçük modüller ve dışarıdan verilen bağımlılıklar (embedder, reranker ve LLM parametredir);
+  böylece her şey model indirmeden test edilebiliyor.
+- pytest ile test: sahte nesneler, monkeypatch ve Typer'ın test çalıştırıcısıyla CLI testleri.
+- SHA-256 dosya hash'leriyle artımlı indeksleme ve `pathspec` ile `.gitignore` işleme (`scanner.py`, `indexer.py`).
+- Typer ve Rich ile CLI: canlı durum satırı, akışlı Markdown ve işe yarar `--help` çıktısı.
+- Python projesi paketlemek: `pyproject.toml`, düzgün paket yapısı, komut giriş noktaları ve isteğe bağlı bağımlılık grupları.
+- Git düzeni: iç içe geçmiş işleri ayrı commit'lere bölmek, uzaktaki değişikliklerin üstüne rebase yapmak ve
+  nedenini anlatan commit mesajları yazmak.
+- Açık kaynak temelleri: lisans, sınırlamaları söyleyen bir README ve `.gitignore`.
+- Windows ayrıntıları: satır numaraları ve hash'ler tutarlı kalsın diye CRLF/LF normalizasyonu, kabuk tırnakları ve konsol kodlamaları.
+
+**Bana bir şey öğreten hatalar**
+- `BM25Okapi` çok küçük koleksiyonlarda negatif skor verdi ve kelime araması hiçbir şey bulmadı; `BM25Plus`'a
+  geçmek çözdü. Kütüphane varsayımları küçük girdilerle test edilmeli.
+- Türkçe soru, sorgu çevirisi eklenene kadar İngilizce adlandırılmış kodu bulamadı.
+- Model kendi prompt'undaki örnekleri kopyalayıp fonksiyon adı uydurdu. Örnekleri kaldırıp prompt'u gerçek
+  veriyle desteklemek gerekti.
+- Test fonksiyonu adları sembol listesine sızıp arama sorgularına girdi.
+- Terminale yapıştırılan kıvrık tırnaklar bir komutu sessizce bozdu.
 
 ## Lisans
 
