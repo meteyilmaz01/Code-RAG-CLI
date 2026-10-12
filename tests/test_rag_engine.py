@@ -126,6 +126,29 @@ def test_without_reranker_order_comes_from_fusion(tmp_path):
     assert engine.retrieve("get_user_by_id")[0].symbol == "get_user_by_id"
 
 
+def test_rewrite_prompt_lists_real_symbols(tmp_path):
+    llm = RecordingLLM("send_email smtp")
+    engine = make_engine(tmp_path, llm)
+    engine.rewrite_query("e-posta gönderen fonksiyon hangisi?")
+
+    prompt = llm.messages[0].content
+    assert "mail.py: send_email" in prompt
+    assert "users.py: get_user_by_id" in prompt
+    assert "Never invent" in prompt
+
+
+def test_rewrite_prompt_uses_only_nearby_symbols_when_index_is_large(tmp_path, monkeypatch):
+    monkeypatch.setattr("core.rag_engine.MAX_SYMBOLS_IN_PROMPT", 2)  # 3 sembol var: sınırı aşar
+    monkeypatch.setattr("core.rag_engine.SYMBOL_HINT_NEIGHBOURS", 1)
+    llm = RecordingLLM("x")
+    engine = make_engine(tmp_path, llm)
+    engine.rewrite_query("send email smtp")
+
+    prompt = llm.messages[0].content
+    assert "send_email" in prompt
+    assert "parse_config" not in prompt
+
+
 def test_snippet_lines_carry_their_real_line_numbers():
     chunk = make_chunk("a = 1\nb = 2\nc = 3", "config.py", start=9, symbol=None)
     snippet = format_snippet(chunk)

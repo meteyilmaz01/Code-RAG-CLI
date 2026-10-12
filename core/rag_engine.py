@@ -4,12 +4,21 @@ from typing import Callable
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from config import CANDIDATES, DEFAULT_LLM_MODELS, LLM_MODEL, LLM_PROVIDER, RERANK_CANDIDATES, TOP_K
+from config import (
+    CANDIDATES,
+    DEFAULT_LLM_MODELS,
+    LLM_MODEL,
+    LLM_PROVIDER,
+    MAX_SYMBOLS_IN_PROMPT,
+    RERANK_CANDIDATES,
+    TOP_K,
+)
 from core.chunker import Chunk
 from core.reranker import Reranker
 from core.vector_store import VectorStore, embedding_text
 
 RRF_K = 60
+SYMBOL_HINT_NEIGHBOURS = 60  # çok büyük indekste sembol listesi için bakılan en yakın parça sayısı
 
 SYSTEM_PROMPT = """You are a code assistant answering questions about a codebase.
 You are given code snippets retrieved from the project, each headed by a location such as `src/app.py:10-25`.
@@ -22,7 +31,8 @@ Rules:
 - Reply in the same language as the question."""
 
 REWRITE_PROMPT = """Rewrite the user's question as a short English search query for a code search engine.
-Include likely function, class or variable names (for example: index_directory, VectorStore).
+Use keywords and, when a list of known symbols is given below, exact names copied from that list.
+Never invent function, class or variable names that are not in the list.
 Output only the query on a single line, nothing else."""
 
 NOT_FOUND ="İndekste bu soruyla ilgili bir kod bulunamadı. Önce `coderag index` çalıştırdığından emin ol."
@@ -74,9 +84,24 @@ class RagEngine:
 
     def rewrite_query(self, question: str) -> str:
         """Soruyu kod aramasına uygun kısa bir İngilizce sorguya çevirir (kod İngilizce, soru Türkçe olabilir)."""
-        reply = self.get_llm().invoke([SystemMessage(REWRITE_PROMPT), HumanMessage(question)])
+        prompt = REWRITE_PROMPT
+        symbols = self.symbol_hint(question)
+        if symbols:
+            prompt += f"\n\nKnown symbols in the project (file: symbols):\n{symbols}"
+        reply = self.get_llm().invoke([SystemMessage(prompt), HumanMessage(question)])
         lines = message_text(reply.content).strip().splitlines()
         return lines[0].strip(" `\"'") if lines else ""
+
+    def symbol_hint(self, question: str) -> str:
+        """Çeviri adımına verilecek gerçek sembol listesi. Çok büyük indekste soruya yakın parçalarınki."""
+        by_file = self.store.symbols_by_file()
+        if sum(len(names) for names in by_file.values()) > MAX_SYMBOLS_IN_PROMPT:
+            near: dict[str, set[str]] = {}
+            for chunk in self.store.search_dense(question, SYMBOL_HINT_NEIGHBOURS):
+                if chunk.symbol:
+                    near.setdefault(chunk.file_path, set()).add(chunk.symbol)
+            by_file = {path: sorted(names) for path, names in sorted(near.items())}
+        return "\n".join(f"{path}: {', '.join(names)}" for path, names in by_file.items())
 
     def get_llm(self):
         if self.llm is None:

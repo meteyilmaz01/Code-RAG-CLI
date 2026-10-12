@@ -80,6 +80,14 @@ class VectorStore:
         best = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:k]
         return [self.bm25_chunks[i] for i in best if scores[i] > 0]
 
+    def symbols_by_file(self) -> dict[str, list[str]]:
+        """İndeksteki fonksiyon/sınıf adları, dosyalara göre gruplanmış."""
+        grouped: dict[str, set[str]] = {}
+        for meta in self.collection.get(include=["metadatas"])["metadatas"]:
+            if meta["symbol"]:
+                grouped.setdefault(meta["file_path"], set()).add(meta["symbol"])
+        return {path: sorted(names) for path, names in sorted(grouped.items())}
+
     def rebuild_bm25(self) -> None:
         stored = self.collection.get()
         self.bm25_chunks = [to_chunk(d, m) for d, m in zip(stored["documents"], stored["metadatas"])]

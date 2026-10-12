@@ -71,6 +71,16 @@ def test_chunk_roundtrip_keeps_metadata(tmp_path):
     assert found == CHUNKS[2]
 
 
+def test_symbols_by_file_groups_and_skips_unnamed_chunks(tmp_path):
+    store = make_store(tmp_path)
+    store.add(CHUNKS + [make_chunk("X = 1", "users.py", 50, None)])
+    assert store.symbols_by_file() == {
+        "config.py": ["parse_config"],
+        "mail.py": ["send_email"],
+        "users.py": ["get_user_by_id"],
+    }
+
+
 def test_delete_file_removes_its_chunks(tmp_path):
     store = make_store(tmp_path)
     store.add(CHUNKS)
