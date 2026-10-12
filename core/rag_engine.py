@@ -1,5 +1,6 @@
 """RagEngine: hibrit arama (anlam + kelime), bulunan kodu LLM'e bağlam olarak verip referanslı yanıt üretir."""
 from dataclasses import dataclass
+from typing import Callable
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -38,28 +39,36 @@ class RagEngine:
         llm=None,
         rerank: Reranker | None = None,
         rerank_with_english: bool = True,
+        progress: Callable[[str], None] | None = None,
     ) -> None:
         self.store = store
         self.llm = llm  # verilmezse ilk soruda ayarlardan oluşturulur
         self.rerank = rerank  # verilmezse birleştirilmiş sıralama olduğu gibi kullanılır
         self.rerank_with_english = rerank_with_english  # False ise reranker orijinal soruyla puanlar
+        self.report = progress or (lambda step: None)  # her uzun adımın başında çağrılır
 
     def retrieve(self, question: str) -> list[Chunk]:
         queries = [question]
+        self.report("Soru İngilizce arama sorgusuna çevriliyor")
         english = self.rewrite_query(question)
         if english and english != question:
             queries.append(english)
 
+        self.report(f"Kod aranıyor (anlam + kelime): {queries[-1]}")
         rankings = []
         for query in queries:
             rankings.append(self.store.search_dense(query, CANDIDATES))
             rankings.append(self.store.search_bm25(query, CANDIDATES))
+
+        self.report("Sonuçlar RRF ile birleştiriliyor")
         fused = reciprocal_rank_fusion(rankings)
 
         if self.rerank is None:
             return fused[:TOP_K]
+        candidates = fused[:RERANK_CANDIDATES]
+        self.report(f"Reranker ile yeniden sıralanıyor ({len(candidates)} aday)")
         rerank_query = queries[-1] if self.rerank_with_english else question
-        return rerank_chunks(self.rerank, rerank_query, fused[:RERANK_CANDIDATES])[:TOP_K]
+        return rerank_chunks(self.rerank, rerank_query, candidates)[:TOP_K]
 
     def rewrite_query(self, question: str) -> str:
         """Soruyu kod aramasına uygun kısa bir İngilizce sorguya çevirir (kod İngilizce, soru Türkçe olabilir)."""
@@ -77,6 +86,7 @@ class RagEngine:
             return Answer(NOT_FOUND, [])
 
         sources = self.retrieve(question)
+        self.report(f"LLM cevabı yazıyor ({len(sources)} kod parçası bağlam olarak veriliyor)")
         reply = self.get_llm().invoke(build_messages(question, sources))
         return Answer(message_text(reply.content), sources)
 

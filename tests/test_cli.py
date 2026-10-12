@@ -33,6 +33,9 @@ def test_index_then_ask(tmp_path, monkeypatch):
     result = runner.invoke(cli.app, ["ask", "create_user ne yapar?", "--path", str(tmp_path), "--show-code"])
     assert result.exit_code == 0, result.output
     assert "kullanıcıyı kaydeder" in result.output
+    assert "✓ Soru İngilizce arama sorgusuna çevriliyor" in result.output
+    assert "✓ Kod aranıyor" in result.output
+    assert "✓ LLM cevabı yazıyor" in result.output
     assert "users.py" in result.output
     assert "db.insert(name)" in result.output
 
@@ -55,17 +58,17 @@ def test_reranker_is_off_by_default(tmp_path, monkeypatch):
     monkeypatch.setattr(cli, "open_reranker", must_not_load)
     result = runner.invoke(cli.app, ["ask", "create_user ne yapar?", "--path", str(tmp_path)])
     assert result.exit_code == 0, result.output
+    assert "Reranker" not in result.output
 
 
 def test_rerank_flag_turns_reranker_on(tmp_path, monkeypatch):
     setup_project(tmp_path, monkeypatch)
     runner.invoke(cli.app, ["index", str(tmp_path)])
-    loaded = []
-    monkeypatch.setattr(cli, "open_reranker", lambda: loaded.append(1) or (lambda query, texts: [0.0] * len(texts)))
+    monkeypatch.setattr(cli, "open_reranker", lambda: (lambda query, texts: [0.0] * len(texts)))
 
     result = runner.invoke(cli.app, ["ask", "create_user ne yapar?", "--path", str(tmp_path), "--rerank"])
     assert result.exit_code == 0, result.output
-    assert loaded == [1]
+    assert "✓ Reranker ile yeniden sıralanıyor" in result.output
 
 
 def test_ask_without_index_fails_with_hint(tmp_path):

@@ -76,6 +76,30 @@ def test_reranker_reorders_results_and_uses_english_query(tmp_path):
     assert seen["query"] == "send_email smtp"
 
 
+def test_progress_reports_each_step_in_order(tmp_path):
+    steps = []
+    store = VectorStore(tmp_path, embed=fake_embed)
+    store.add(CHUNKS)
+    engine = RagEngine(store, llm=RecordingLLM(), rerank=lambda q, texts: [0.0] * len(texts), progress=steps.append)
+
+    engine.ask("get_user_by_id nedir?")
+
+    assert len(steps) == 5
+    assert steps[0].startswith("Soru İngilizce")
+    assert steps[1].startswith("Kod aranıyor")
+    assert steps[2].startswith("Sonuçlar RRF")
+    assert steps[3].startswith("Reranker")
+    assert steps[4].startswith("LLM cevabı")
+
+
+def test_reranker_step_is_skipped_when_reranker_is_off(tmp_path):
+    steps = []
+    store = VectorStore(tmp_path, embed=fake_embed)
+    store.add(CHUNKS)
+    RagEngine(store, llm=RecordingLLM(), progress=steps.append).ask("get_user_by_id nedir?")
+    assert not any(step.startswith("Reranker") for step in steps)
+
+
 def test_reranker_can_use_original_question(tmp_path):
     seen = {}
 

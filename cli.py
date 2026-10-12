@@ -1,9 +1,11 @@
 """Terminal giriş noktası: `coderag index` ve `coderag ask`."""
+import time
 from pathlib import Path
 
 import typer
 from rich.console import Console
 from rich.markdown import Markdown
+from rich.markup import escape
 from rich.syntax import Syntax
 from rich.table import Table
 
@@ -23,6 +25,30 @@ def open_store(root: Path) -> VectorStore:
 
 def open_reranker():
     return fastembed_reranker(RERANK_MODEL)
+
+
+class StepPrinter:
+    """Çalışan adımı canlı gösterir, biten adımı süresiyle birlikte kalıcı satır olarak yazar."""
+
+    def __init__(self, console: Console, status) -> None:
+        self.console = console
+        self.status = status
+        self.step: str | None = None
+        self.started = 0.0
+
+    def __call__(self, step: str) -> None:
+        self.finish()
+        self.step = step
+        self.started = time.perf_counter()
+        self.status.update(f"{escape(step)}...")
+
+    def finish(self) -> None:
+        if self.step is None:
+            return
+        elapsed = time.perf_counter() - self.started
+        duration = f" [dim]({elapsed:.1f} sn)[/dim]" if elapsed >= 0.1 else ""
+        self.console.print(f"[green]✓[/green] {escape(self.step)}{duration}", highlight=False)
+        self.step = None
 
 
 @app.command()
@@ -58,14 +84,17 @@ def ask(
         console.print(f"[red]İndeks yok.[/red] Önce çalıştır: coderag index {path}")
         raise typer.Exit(1)
 
-    engine = RagEngine(
-        open_store(root),
-        rerank=open_reranker() if rerank else None,
-        rerank_with_english=RERANK_WITH_ENGLISH,
-    )
     try:
-        with console.status("Düşünüyorum..."):
+        with console.status("Başlıyor...") as status:
+            steps = StepPrinter(console, status)
+            engine = RagEngine(
+                open_store(root),
+                rerank=open_reranker() if rerank else None,
+                rerank_with_english=RERANK_WITH_ENGLISH,
+                progress=steps,
+            )
             answer = engine.ask(question)
+            steps.finish()
     except (RuntimeError, ValueError) as error:
         console.print(f"[red]{error}[/red]")
         raise typer.Exit(1)
