@@ -17,6 +17,7 @@ pip install -e ".[ollama]"      # ya da ".[openai]" / ".[gemini]"
 coderag index <dizin>                       # kodu tara ve indeksle (tekrarda sadece değişenler)
 coderag ask "<soru>" --path <dizin>         # soru sor
 coderag ask "<soru>" --path <dizin> -c      # kaynak kodu da göster
+coderag ask "<soru>" --rerank               # reranker ile yeniden sırala (daha iyi sıralama, soru başına ~20 sn ek süre)
 ```
 
 İndeks, indekslenen dizinin içindeki `.coderag/` klasörüne yazılır.
@@ -33,13 +34,16 @@ Ortam değişkenleriyle ayarlanır:
 OpenAI için `OPENAI_API_KEY`, Gemini için `GOOGLE_API_KEY` tanımlı olmalı.
 
 Embedding modeli (`jinaai/jina-embeddings-v2-base-code`) ilk `index` çalıştırmasında indirilir.
+Reranker varsayılan olarak kapalıdır; `--rerank` ile ilk kullanımda `jinaai/jina-reranker-v2-base-multilingual`
+(yaklaşık 1,1 GB) indirilir.
 
 ## Nasıl çalışır
 
 1. `core/scanner.py`: `.gitignore`'a saygı duyarak kod dosyalarını toplar.
 2. `core/chunker.py`: Python'u tree-sitter ile fonksiyon/sınıf sınırlarında, diğer dilleri LangChain splitter ile böler.
 3. `core/vector_store.py`: fastembed ile embedding üretir, ChromaDB'ye yazar; ayrıca BM25 kelime araması sunar.
-4. `core/rag_engine.py`: anlam ve kelime aramasını RRF ile birleştirir, bulunan kodu LangChain üzerinden LLM'e verir.
+4. `core/rag_engine.py`: anlam ve kelime aramasını RRF ile birleştirir, `core/reranker.py` ile yeniden sıralar,
+   bulunan kodu LangChain üzerinden LLM'e verir.
 5. `cli.py`: Typer + Rich arayüzü.
 
 ## Test

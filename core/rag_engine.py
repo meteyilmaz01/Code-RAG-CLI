@@ -3,9 +3,10 @@ from dataclasses import dataclass
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from config import CANDIDATES, DEFAULT_LLM_MODELS, LLM_MODEL, LLM_PROVIDER, TOP_K
+from config import CANDIDATES, DEFAULT_LLM_MODELS, LLM_MODEL, LLM_PROVIDER, RERANK_CANDIDATES, TOP_K
 from core.chunker import Chunk
-from core.vector_store import VectorStore
+from core.reranker import Reranker
+from core.vector_store import VectorStore, embedding_text
 
 RRF_K = 60
 
@@ -31,9 +32,17 @@ class Answer:
 
 
 class RagEngine:
-    def __init__(self, store: VectorStore, llm=None) -> None:
+    def __init__(
+        self,
+        store: VectorStore,
+        llm=None,
+        rerank: Reranker | None = None,
+        rerank_with_english: bool = True,
+    ) -> None:
         self.store = store
         self.llm = llm  # verilmezse ilk soruda ayarlardan oluşturulur
+        self.rerank = rerank  # verilmezse birleştirilmiş sıralama olduğu gibi kullanılır
+        self.rerank_with_english = rerank_with_english  # False ise reranker orijinal soruyla puanlar
 
     def retrieve(self, question: str) -> list[Chunk]:
         queries = [question]
@@ -45,7 +54,12 @@ class RagEngine:
         for query in queries:
             rankings.append(self.store.search_dense(query, CANDIDATES))
             rankings.append(self.store.search_bm25(query, CANDIDATES))
-        return reciprocal_rank_fusion(rankings)[:TOP_K]
+        fused = reciprocal_rank_fusion(rankings)
+
+        if self.rerank is None:
+            return fused[:TOP_K]
+        rerank_query = queries[-1] if self.rerank_with_english else question
+        return rerank_chunks(self.rerank, rerank_query, fused[:RERANK_CANDIDATES])[:TOP_K]
 
     def rewrite_query(self, question: str) -> str:
         """Soruyu kod aramasına uygun kısa bir İngilizce sorguya çevirir (kod İngilizce, soru Türkçe olabilir)."""
@@ -77,6 +91,15 @@ def reciprocal_rank_fusion(rankings: list[list[Chunk]]) -> list[Chunk]:
             scores[key] = scores.get(key, 0.0) + 1.0 / (RRF_K + rank + 1)
             by_key[key] = chunk
     return [by_key[key] for key in sorted(scores, key=scores.get, reverse=True)]
+
+
+def rerank_chunks(rerank: Reranker, query: str, chunks: list[Chunk]) -> list[Chunk]:
+    """Adayları reranker puanına göre en alakalıdan en aza sıralar."""
+    if not chunks:
+        return []
+    scores = rerank(query, [embedding_text(c) for c in chunks])
+    ranked = sorted(zip(scores, range(len(chunks))), key=lambda pair: pair[0], reverse=True)
+    return [chunks[i] for _, i in ranked]
 
 
 def build_messages(question: str, sources: list[Chunk]) -> list:

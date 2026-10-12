@@ -34,6 +34,9 @@ COLLECTION_NAME = "code_chunks"
 # Retrieval
 TOP_K = 8
 CANDIDATES = 20  # anlam ve kelime aramasının her birinden alınan aday sayısı
+RERANK_MODEL = "jinaai/jina-reranker-v2-base-multilingual"  # çok dilli: Türkçe soruyu doğrudan puanlar
+RERANK_WITH_ENGLISH = False  # eval/run_eval.py ölçümü: orijinal soruyla puanlamak daha iyi (MRR 0.54 / 0.42)
+RERANK_CANDIDATES = 20  # birleştirilmiş adaylardan reranker'a verilen sayı
 
 # LLM sağlayıcısı: ortam değişkenleriyle değiştirilir
 LLM_PROVIDER = os.environ.get("CODERAG_PROVIDER", "ollama")  # ollama | openai | gemini

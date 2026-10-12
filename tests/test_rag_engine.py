@@ -54,6 +54,54 @@ def test_non_english_question_is_rewritten_for_retrieval(tmp_path):
     assert "send_email" in [c.symbol for c in answer.sources]
 
 
+def test_reranker_reorders_results_and_uses_english_query(tmp_path):
+    seen = {}
+
+    def fake_rerank(query, texts):
+        seen["query"] = query
+        return [10.0 if "parse_config" in text else 0.0 for text in texts]
+
+    class TranslatingLLM(RecordingLLM):
+        def invoke(self, messages):
+            if "search query" in messages[0].content:
+                return AIMessage("send_email smtp")
+            return super().invoke(messages)
+
+    store = VectorStore(tmp_path, embed=fake_embed)
+    store.add(CHUNKS)
+    engine = RagEngine(store, llm=TranslatingLLM(), rerank=fake_rerank)
+
+    sources = engine.retrieve("e-posta gönderen fonksiyon hangisi?")
+    assert sources[0].symbol == "parse_config"  # reranker'ın en yükseğe koyduğu
+    assert seen["query"] == "send_email smtp"
+
+
+def test_reranker_can_use_original_question(tmp_path):
+    seen = {}
+
+    def fake_rerank(query, texts):
+        seen["query"] = query
+        return [0.0] * len(texts)
+
+    class TranslatingLLM(RecordingLLM):
+        def invoke(self, messages):
+            if "search query" in messages[0].content:
+                return AIMessage("send_email smtp")
+            return super().invoke(messages)
+
+    store = VectorStore(tmp_path, embed=fake_embed)
+    store.add(CHUNKS)
+    engine = RagEngine(store, llm=TranslatingLLM(), rerank=fake_rerank, rerank_with_english=False)
+    engine.retrieve("e-posta gönderen fonksiyon hangisi?")
+    assert seen["query"] == "e-posta gönderen fonksiyon hangisi?"
+
+
+def test_without_reranker_order_comes_from_fusion(tmp_path):
+    engine = make_engine(tmp_path, RecordingLLM())
+    assert engine.rerank is None
+    assert engine.retrieve("get_user_by_id")[0].symbol == "get_user_by_id"
+
+
 def test_ask_on_empty_index_does_not_call_llm(tmp_path):
     llm = RecordingLLM()
     engine = RagEngine(VectorStore(tmp_path, embed=fake_embed), llm=llm)

@@ -7,9 +7,10 @@ from rich.markdown import Markdown
 from rich.syntax import Syntax
 from rich.table import Table
 
-from config import INDEX_DIR
+from config import INDEX_DIR, RERANK_MODEL, RERANK_WITH_ENGLISH
 from core.indexer import index_directory
 from core.rag_engine import RagEngine
+from core.reranker import fastembed_reranker
 from core.vector_store import VectorStore
 
 app = typer.Typer(help="Kod tabanı üzerinde RAG ile soru-cevap.", no_args_is_help=True)
@@ -18,6 +19,10 @@ console = Console()
 
 def open_store(root: Path) -> VectorStore:
     return VectorStore(root / INDEX_DIR)
+
+
+def open_reranker():
+    return fastembed_reranker(RERANK_MODEL)
 
 
 @app.command()
@@ -43,6 +48,9 @@ def ask(
     question: str = typer.Argument(..., help="Kod tabanına sorulacak soru"),
     path: Path = typer.Option(Path("."), "--path", "-p", help="İndekslenmiş dizin"),
     show_code: bool = typer.Option(False, "--show-code", "-c", help="Kaynak kod parçalarını da göster"),
+    rerank: bool = typer.Option(
+        False, "--rerank", help="Sonuçları reranker ile yeniden sırala (daha iyi sıralama, soru başına ~20 sn ek süre)"
+    ),
 ) -> None:
     """Soruyu yanıtla; dosya ve satır referanslarını göster."""
     root = path.resolve()
@@ -50,7 +58,11 @@ def ask(
         console.print(f"[red]İndeks yok.[/red] Önce çalıştır: coderag index {path}")
         raise typer.Exit(1)
 
-    engine = RagEngine(open_store(root))
+    engine = RagEngine(
+        open_store(root),
+        rerank=open_reranker() if rerank else None,
+        rerank_with_english=RERANK_WITH_ENGLISH,
+    )
     try:
         with console.status("Düşünüyorum..."):
             answer = engine.ask(question)
