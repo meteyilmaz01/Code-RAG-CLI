@@ -92,7 +92,17 @@ coderag ask "How does incremental indexing work?" --path path/to/project
 | `--no-update` | Skip the automatic index refresh before answering |
 
 The index lives in `.coderag/` inside the indexed project. `python -m coderag` works too.
-`coderag --help` (or `-h`) lists the available commands with examples, and `coderag ask --help` shows every option.
+
+### Getting help
+
+```bash
+coderag --help          # lists the commands (index, ask) with examples and the LLM settings
+coderag -h              # same thing, short form
+coderag ask --help      # every option of the ask command (short form: coderag ask -h)
+coderag index -h        # options of the index command
+```
+
+Use the double dash for the long form (`--help`); a single-dash `-help` is not recognised.
 
 ### Choosing the LLM
 

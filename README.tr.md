@@ -92,8 +92,18 @@ coderag ask "Artımlı indeksleme nasıl çalışıyor?" --path proje/yolu
 | `--no-update` | Cevaptan önceki otomatik indeks güncellemesini atlar |
 
 İndeks, indekslenen projenin içindeki `.coderag/` klasöründe durur. `python -m coderag` de çalışır.
-`coderag --help` (ya da `-h`) kullanılabilir komutları örnekleriyle listeler, `coderag ask --help` her seçeneği gösterir.
 CLI mesajları Türkçedir; soruyu LLM'in anladığı herhangi bir dilde sorabilirsin.
+
+### Yardım alma
+
+```bash
+coderag --help          # komutları (index, ask), örnekleri ve LLM ayarlarını listeler
+coderag -h              # aynısı, kısa hâli
+coderag ask --help      # ask komutunun tüm seçenekleri (kısa hâli: coderag ask -h)
+coderag index -h        # index komutunun seçenekleri
+```
+
+Uzun hâl için çift tire kullan (`--help`); tek tireli `-help` tanınmaz.
 
 ### LLM seçimi
 
