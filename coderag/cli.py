@@ -16,7 +16,28 @@ from coderag.core.rag_engine import RagEngine
 from coderag.core.reranker import fastembed_reranker
 from coderag.core.vector_store import VectorStore
 
-app = typer.Typer(help="Kod tabanı üzerinde RAG ile soru-cevap.", no_args_is_help=True)
+# Typer, epilog'daki boş satırla ayrılmış her paragrafı ayrı satır olarak basar.
+EPILOG = "\n\n".join(
+    [
+        "[bold]Örnekler[/bold]",
+        "› coderag index .",
+        '› coderag ask "Artımlı indeksleme nasıl çalışıyor?"',
+        '› coderag ask "Hibrit arama nasıl yapılıyor?" --path proje/yolu --show-code',
+        "[bold]LLM seçimi (ortam değişkenleri)[/bold]",
+        "› CODERAG_PROVIDER: ollama, openai veya gemini (varsayılan ollama)",
+        "› CODERAG_MODEL: model adı (boşsa sağlayıcının varsayılanı)",
+        "Bir komutun tüm seçenekleri için: coderag ask --help",
+    ]
+)
+
+app = typer.Typer(
+    help="Kod tabanını indeksler, sorulara dosya ve satır referanslı cevap verir.",
+    epilog=EPILOG,
+    no_args_is_help=True,
+    add_completion=False,
+    rich_markup_mode="rich",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 console = Console()
 
 
@@ -98,7 +119,13 @@ def update_index(root: Path, store: VectorStore, steps: StepPrinter) -> None:
 
 @app.command()
 def index(path: Path = typer.Argument(Path("."), help="İndekslenecek dizin")) -> None:
-    """Dizini tara, parçala ve vektör veritabanına kaydet. Sadece değişen dosyalar yeniden işlenir."""
+    """Dizini tara, parçala ve vektör veritabanına kaydet (sadece değişen dosyalar yeniden işlenir).
+
+    \b
+    Örnekler:
+      coderag index .
+      coderag index proje/yolu
+    """
     root = path.resolve()
     if not root.is_dir():
         console.print(f"[red]Dizin bulunamadı:[/red] {root}")
@@ -127,7 +154,14 @@ def ask(
     ),
     top_k: int = typer.Option(TOP_K, "--top-k", "-k", min=1, help="LLM'e bağlam olarak verilen kod parçası sayısı"),
 ) -> None:
-    """Soruyu yanıtla; dosya ve satır referanslarını göster."""
+    """Soruyu yanıtla; dosya ve satır referanslarını göster.
+
+    \b
+    Örnekler:
+      coderag ask "Artımlı indeksleme nasıl çalışıyor?"
+      coderag ask "soru" --path proje/yolu -c
+      coderag ask "soru" --rerank --top-k 8
+    """
     root = path.resolve()
     if not (root / INDEX_DIR).exists():
         console.print(f"[red]İndeks yok.[/red] Önce çalıştır: coderag index {path}")

@@ -129,6 +129,29 @@ def test_rerank_flag_turns_reranker_on(tmp_path, monkeypatch):
     assert "✓ Reranker ile yeniden sıralanıyor" in result.output
 
 
+def test_help_lists_commands_examples_and_env_variables():
+    for flag in ("--help", "-h"):
+        result = runner.invoke(cli.app, [flag])
+        assert result.exit_code == 0, result.output
+        assert "index" in result.output and "ask" in result.output
+        assert "coderag ask" in result.output  # örnek komutlar
+        assert "CODERAG_PROVIDER" in result.output and "CODERAG_MODEL" in result.output
+        assert "--install-completion" not in result.output  # alakasız seçenekler gizli
+
+
+def test_no_arguments_shows_help():
+    result = runner.invoke(cli.app, [])
+    assert "ask" in result.output and "index" in result.output
+
+
+def test_command_help_shows_options_and_examples():
+    result = runner.invoke(cli.app, ["ask", "-h"])
+    assert result.exit_code == 0, result.output
+    for option in ("--path", "--show-code", "--rerank", "--no-update", "--top-k"):
+        assert option in result.output
+    assert "Örnekler" in result.output
+
+
 def test_ask_without_index_fails_with_hint(tmp_path):
     result = runner.invoke(cli.app, ["ask", "soru", "--path", str(tmp_path)])
     assert result.exit_code == 1
