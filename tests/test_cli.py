@@ -1,3 +1,5 @@
+import re
+
 import cli
 from langchain_core.messages import AIMessage
 from typer.testing import CliRunner
@@ -72,6 +74,16 @@ def test_no_update_flag_skips_index_check(tmp_path, monkeypatch):
     assert "İndeks" not in result.output
     symbols = [c.symbol for c in cli.open_store(tmp_path).search_bm25("rename_user", 5)]
     assert "rename_user" not in symbols  # indeks eskisi gibi, yeni fonksiyon yok
+
+
+def test_top_k_option_limits_sources_table(tmp_path, monkeypatch):
+    setup_project(tmp_path, monkeypatch)
+    runner.invoke(cli.app, ["index", str(tmp_path)])
+
+    result = runner.invoke(cli.app, ["ask", "create_user delete_user", "--path", str(tmp_path), "--top-k", "1"])
+    assert result.exit_code == 0, result.output
+    table_rows = re.findall(r"users\.py[^\n]*\d+-\d+", result.output)  # "dosya | satırlar" biçimindeki tablo satırları
+    assert len(table_rows) == 1
 
 
 def test_reranker_is_off_by_default(tmp_path, monkeypatch):

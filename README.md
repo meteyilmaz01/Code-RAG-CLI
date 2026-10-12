@@ -17,6 +17,7 @@ pip install -e ".[ollama]"      # ya da ".[openai]" / ".[gemini]"
 coderag index <dizin>                       # kodu tara ve indeksle (tekrarda sadece değişenler)
 coderag ask "<soru>" --path <dizin>         # soru sor
 coderag ask "<soru>" --path <dizin> -c      # kaynak kodu da göster
+coderag ask "<soru>" --top-k 8              # LLM'e verilen kod parçası sayısı (varsayılan 5)
 coderag ask "<soru>" --rerank               # reranker ile yeniden sırala (daha iyi sıralama, soru başına ~20 sn ek süre)
 ```
 
@@ -44,8 +45,8 @@ Reranker varsayılan olarak kapalıdır; `--rerank` ile ilk kullanımda `jinaai/
 python eval/run_eval.py
 ```
 
-`eval/questions.json` içindeki sorular için beklenen fonksiyonların ilk 8 sonuçta çıkıp çıkmadığını,
-reranker'lı ve reranker'sız yapılandırmalar için karşılaştırır.
+`eval/questions.json` içindeki sorular için beklenen fonksiyonların ilk 3, 5 ve 8 sonuçta çıkıp çıkmadığını
+(Recall@k) ve doğru cevabın ortalama sırasını (MRR), reranker'lı ve reranker'sız yapılandırmalar için karşılaştırır.
 
 ## Nasıl çalışır
 

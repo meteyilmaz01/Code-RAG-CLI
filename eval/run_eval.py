@@ -11,10 +11,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config import INDEX_DIR, TOP_K  # noqa: E402
+from config import INDEX_DIR  # noqa: E402
 from core.rag_engine import RagEngine  # noqa: E402
 from core.reranker import fastembed_reranker  # noqa: E402
 from core.vector_store import VectorStore  # noqa: E402
+
+EVAL_KS = (3, 5, 8)  # Recall@k sütunları; arama max(EVAL_KS) sonuç getirir
 
 V1_TURBO = "jinaai/jina-reranker-v1-turbo-en"
 V2_MULTI = "jinaai/jina-reranker-v2-base-multilingual"
@@ -46,7 +48,7 @@ def main() -> None:
 
     results = []
     for name, model, english in configs:
-        engine = RagEngine(store, rerank=rerankers.get(model), rerank_with_english=english)
+        engine = RagEngine(store, rerank=rerankers.get(model), rerank_with_english=english, top_k=max(EVAL_KS))
         engine.rewrite_query = rewrites.get
         started = time.perf_counter()
         scores = [score(engine.retrieve(q["question"]), q["expected"]) for q in questions]
@@ -92,17 +94,25 @@ def score(chunks, expected: list[str]) -> dict:
     }
 
 
+def recall_at(scores: list[dict], k: int) -> float:
+    """Her soru için beklenen fonksiyonların kaçı ilk k sonuçta çıktı, soruların ortalaması."""
+    per_question = [sum(1 for r in s["ranks"].values() if r and r <= k) / len(s["ranks"]) for s in scores]
+    return sum(per_question) / len(per_question)
+
+
 def print_summary(results, questions) -> None:
     n = len(questions)
-    print(f"\n{'Yapılandırma':<38} {'Recall@' + str(TOP_K):>9} {'İlk isabet ort. sıra':>21} {'MRR':>6} {'Süre':>7}")
+    ks = EVAL_KS
+    recall_headers = " ".join(f"{'Recall@' + str(k):>9}" for k in ks)
+    print(f"\n{'Yapılandırma':<38} {recall_headers} {'İlk isabet ort. sıra':>21} {'MRR':>6} {'Süre':>7}")
     for name, scores, seconds in results:
-        recall = sum(s["recall"] for s in scores) / n
+        recalls = " ".join(f"{recall_at(scores, k):>9.2f}" for k in ks)
         firsts = [s["first"] for s in scores if s["first"]]
         mean_first = sum(firsts) / len(firsts) if firsts else float("nan")
         mrr = sum(1 / s["first"] for s in scores if s["first"]) / n
-        print(f"{name:<38} {recall:>9.2f} {mean_first:>21.2f} {mrr:>6.2f} {seconds:>6.0f}s")
+        print(f"{name:<38} {recalls} {mean_first:>21.2f} {mrr:>6.2f} {seconds:>6.0f}s")
 
-    print("\nKaçırılan beklentiler (ilk 8'de çıkmayanlar):")
+    print(f"\nKaçırılan beklentiler (ilk {max(EVAL_KS)}'de çıkmayanlar):")
     for name, scores, _ in results:
         misses = [
             f"    Q{i + 1}: {expected}"

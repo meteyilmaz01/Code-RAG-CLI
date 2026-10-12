@@ -129,6 +129,13 @@ def test_reranker_can_use_original_question(tmp_path):
     assert seen["query"] == "e-posta gönderen fonksiyon hangisi?"
 
 
+def test_top_k_limits_number_of_sources(tmp_path):
+    store = VectorStore(tmp_path, embed=fake_embed)
+    store.add(CHUNKS)
+    assert len(RagEngine(store, llm=RecordingLLM(), top_k=2).retrieve("user email config")) == 2
+    assert len(RagEngine(store, llm=RecordingLLM(), top_k=3).retrieve("user email config")) == 3
+
+
 def test_without_reranker_order_comes_from_fusion(tmp_path):
     engine = make_engine(tmp_path, RecordingLLM())
     assert engine.rerank is None

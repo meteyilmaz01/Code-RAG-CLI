@@ -32,7 +32,7 @@ INDEX_DIR = Path(".coderag")
 COLLECTION_NAME = "code_chunks"
 
 # Retrieval
-TOP_K = 8
+TOP_K = 5  # eval: Recall@5 = Recall@8 (0.81) ve LLM prompt'u kısaldığı için yanıt daha hızlı; --top-k ile artırılır
 CANDIDATES = 20  # anlam ve kelime aramasının her birinden alınan aday sayısı
 MAX_SYMBOLS_IN_PROMPT = 300  # sorgu çevirisine verilen en fazla sembol adı; fazlası varsa soruya yakın olanlar seçilir
 RERANK_MODEL ="jinaai/jina-reranker-v2-base-multilingual"  # çok dilli: Türkçe soruyu doğrudan puanlar

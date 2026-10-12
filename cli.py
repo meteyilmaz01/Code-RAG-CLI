@@ -9,7 +9,7 @@ from rich.markup import escape
 from rich.syntax import Syntax
 from rich.table import Table
 
-from config import INDEX_DIR, RERANK_MODEL, RERANK_WITH_ENGLISH
+from config import INDEX_DIR, RERANK_MODEL, RERANK_WITH_ENGLISH, TOP_K
 from core.indexer import index_directory
 from core.rag_engine import RagEngine
 from core.reranker import fastembed_reranker
@@ -100,6 +100,7 @@ def ask(
     update: bool = typer.Option(
         True, "--update/--no-update", help="Soru öncesi indeksi değişen dosyalara göre güncelle"
     ),
+    top_k: int = typer.Option(TOP_K, "--top-k", "-k", min=1, help="LLM'e bağlam olarak verilen kod parçası sayısı"),
 ) -> None:
     """Soruyu yanıtla; dosya ve satır referanslarını göster."""
     root = path.resolve()
@@ -118,6 +119,7 @@ def ask(
                 rerank=open_reranker() if rerank else None,
                 rerank_with_english=RERANK_WITH_ENGLISH,
                 progress=steps,
+                top_k=top_k,
             )
             answer = engine.ask(question)
             steps.finish()
