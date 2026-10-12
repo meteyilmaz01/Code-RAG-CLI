@@ -1,8 +1,40 @@
+# Python
 __pycache__/
+*.py[cod]
 *.egg-info/
-.venv/
-.coderag/
-.env
-.pytest_cache/
+*.egg
+.eggs/
 dist/
 build/
+
+# Sanal ortamlar
+.venv/
+venv/
+
+# Gizli bilgiler (API anahtarları vb.)
+.env
+.env.*
+!.env.example
+
+# coderag indeksi ve değerlendirme önbellekleri (her projede yerel olarak oluşur)
+.coderag/
+
+# Test ve araç önbellekleri
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editör ve işletim sistemi dosyaları
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Claude Code yerel ayarları
+.claude/
+
+# Günlükler
+*.log
