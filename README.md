@@ -37,6 +37,15 @@ Embedding modeli (`jinaai/jina-embeddings-v2-base-code`) ilk `index` çalıştı
 Reranker varsayılan olarak kapalıdır; `--rerank` ile ilk kullanımda `jinaai/jina-reranker-v2-base-multilingual`
 (yaklaşık 1,1 GB) indirilir.
 
+## Arama kalitesini ölçme
+
+```
+python eval/run_eval.py
+```
+
+`eval/questions.json` içindeki sorular için beklenen fonksiyonların ilk 8 sonuçta çıkıp çıkmadığını,
+reranker'lı ve reranker'sız yapılandırmalar için karşılaştırır.
+
 ## Nasıl çalışır
 
 1. `core/scanner.py`: `.gitignore`'a saygı duyarak kod dosyalarını toplar.
