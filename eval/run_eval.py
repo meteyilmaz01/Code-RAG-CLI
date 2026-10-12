@@ -1,6 +1,6 @@
 """Arama kalitesi ölçümü: eval/questions.json'daki her soru için beklenen fonksiyonlar ilk 8 sonuçta çıkıyor mu?
 
-Kullanım:  python eval/run_eval.py [--root DIZIN]
+Kullanım:  python eval/run_eval.py [--root DIZIN]   (önce `pip install -e .` ile kurulmuş olmalı)
 Reranker yapılandırmalarını (model, sorgu dili) yan yana karşılaştırır.
 """
 import argparse
@@ -9,12 +9,10 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from config import INDEX_DIR  # noqa: E402
-from core.rag_engine import RagEngine  # noqa: E402
-from core.reranker import fastembed_reranker  # noqa: E402
-from core.vector_store import VectorStore  # noqa: E402
+from coderag.config import INDEX_DIR
+from coderag.core.rag_engine import RagEngine
+from coderag.core.reranker import fastembed_reranker
+from coderag.core.vector_store import VectorStore
 
 EVAL_KS = (3, 5, 8)  # Recall@k sütunları; arama max(EVAL_KS) sonuç getirir
 

@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from langchain_text_splitters import Language, RecursiveCharacterTextSplitter
 from tree_sitter_language_pack import get_parser
 
-from config import MAX_CHUNK_CHARS
-from core.scanner import SourceFile
+from coderag.config import MAX_CHUNK_CHARS
+from coderag.core.scanner import SourceFile
 
 SPLITTER_LANGUAGES = {
     "csharp": Language.CSHARP,

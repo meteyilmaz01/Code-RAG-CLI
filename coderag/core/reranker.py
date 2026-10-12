@@ -2,7 +2,7 @@
 import os
 from typing import Callable
 
-from config import MODEL_CACHE_DIR
+from coderag.config import MODEL_CACHE_DIR
 
 # (sorgu, metinler) -> her metin için alaka puanı
 Reranker = Callable[[str, list[str]], list[float]]

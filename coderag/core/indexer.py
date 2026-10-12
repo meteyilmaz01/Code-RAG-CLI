@@ -3,9 +3,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from core.chunker import chunk_file
-from core.scanner import scan
-from core.vector_store import VectorStore
+from coderag.core.chunker import chunk_file
+from coderag.core.scanner import scan
+from coderag.core.vector_store import VectorStore
 
 
 @dataclass

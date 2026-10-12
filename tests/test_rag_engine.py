@@ -1,7 +1,7 @@
 import pytest
 from langchain_core.messages import AIMessage
 
-from core.rag_engine import (
+from coderag.core.rag_engine import (
     RagEngine,
     build_llm,
     format_snippet,
@@ -11,7 +11,7 @@ from core.rag_engine import (
     noise_weight,
     reciprocal_rank_fusion,
 )
-from core.vector_store import VectorStore
+from coderag.core.vector_store import VectorStore
 from tests.test_vector_store import CHUNKS, fake_embed, make_chunk
 
 
@@ -206,8 +206,8 @@ def test_rewrite_prompt_lists_real_symbols(tmp_path):
 
 
 def test_rewrite_prompt_uses_only_nearby_symbols_when_index_is_large(tmp_path, monkeypatch):
-    monkeypatch.setattr("core.rag_engine.MAX_SYMBOLS_IN_PROMPT", 2)  # 3 sembol var: sınırı aşar
-    monkeypatch.setattr("core.rag_engine.SYMBOL_HINT_NEIGHBOURS", 1)
+    monkeypatch.setattr("coderag.core.rag_engine.MAX_SYMBOLS_IN_PROMPT", 2)  # 3 sembol var: sınırı aşar
+    monkeypatch.setattr("coderag.core.rag_engine.SYMBOL_HINT_NEIGHBOURS", 1)
     llm = RecordingLLM("x")
     engine = make_engine(tmp_path, llm)
     engine.rewrite_query("send email smtp")

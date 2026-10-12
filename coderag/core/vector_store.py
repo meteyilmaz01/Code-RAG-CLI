@@ -9,8 +9,8 @@ import chromadb
 from chromadb.config import Settings
 from rank_bm25 import BM25Plus
 
-from config import COLLECTION_NAME, EMBEDDING_MODEL, MODEL_CACHE_DIR
-from core.chunker import Chunk
+from coderag.config import COLLECTION_NAME, EMBEDDING_MODEL, MODEL_CACHE_DIR
+from coderag.core.chunker import Chunk
 
 BATCH_SIZE = 64
 

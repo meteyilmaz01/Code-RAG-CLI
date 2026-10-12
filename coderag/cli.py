@@ -10,11 +10,11 @@ from rich.markup import escape
 from rich.syntax import Syntax
 from rich.table import Table
 
-from config import INDEX_DIR, RERANK_MODEL, RERANK_WITH_ENGLISH, TOP_K
-from core.indexer import index_directory
-from core.rag_engine import RagEngine
-from core.reranker import fastembed_reranker
-from core.vector_store import VectorStore
+from coderag.config import INDEX_DIR, RERANK_MODEL, RERANK_WITH_ENGLISH, TOP_K
+from coderag.core.indexer import index_directory
+from coderag.core.rag_engine import RagEngine
+from coderag.core.reranker import fastembed_reranker
+from coderag.core.vector_store import VectorStore
 
 app = typer.Typer(help="Kod tabanı üzerinde RAG ile soru-cevap.", no_args_is_help=True)
 console = Console()

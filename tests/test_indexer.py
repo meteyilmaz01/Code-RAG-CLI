@@ -1,5 +1,5 @@
-from core.indexer import index_directory
-from core.vector_store import VectorStore
+from coderag.core.indexer import index_directory
+from coderag.core.vector_store import VectorStore
 from tests.test_vector_store import fake_embed
 
 

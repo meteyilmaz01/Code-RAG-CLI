@@ -1,66 +1,66 @@
 [
   {
     "question": "Hibrit arama nasıl yapılıyor? RRF ne işe yarıyor?",
-    "expected": ["core/rag_engine.py::RagEngine.retrieve", "core/rag_engine.py::reciprocal_rank_fusion"]
+    "expected": ["coderag/core/rag_engine.py::RagEngine.retrieve", "coderag/core/rag_engine.py::reciprocal_rank_fusion"]
   },
   {
     "question": "Değişen dosyalar yeniden nasıl indeksleniyor, silinen dosyalara ne oluyor?",
-    "expected": ["core/indexer.py::index_directory"]
+    "expected": ["coderag/core/indexer.py::index_directory"]
   },
   {
     "question": ".gitignore kuralları nasıl uygulanıyor?",
-    "expected": ["core/scanner.py::is_ignored", "core/scanner.py::scan"]
+    "expected": ["coderag/core/scanner.py::is_ignored", "coderag/core/scanner.py::scan"]
   },
   {
     "question": "Uzun bir Python sınıfı nasıl parçalanıyor?",
-    "expected": ["core/chunker.py::chunk_definition"]
+    "expected": ["coderag/core/chunker.py::chunk_definition"]
   },
   {
     "question": "Python dışındaki dosyalar nasıl parçalanıyor?",
-    "expected": ["core/chunker.py::chunk_with_splitter"]
+    "expected": ["coderag/core/chunker.py::chunk_with_splitter"]
   },
   {
     "question": "Kelime araması fonksiyon adlarını nasıl kelimelerine ayırıyor?",
-    "expected": ["core/vector_store.py::tokenize", "core/vector_store.py::VectorStore.search_bm25"]
+    "expected": ["coderag/core/vector_store.py::tokenize", "coderag/core/vector_store.py::VectorStore.search_bm25"]
   },
   {
     "question": "Hangi LLM sağlayıcıları destekleniyor ve nasıl seçiliyor?",
-    "expected": ["core/rag_engine.py::build_llm"]
+    "expected": ["coderag/core/rag_engine.py::build_llm"]
   },
   {
     "question": "Embedding modeli nasıl yükleniyor ve nerede saklanıyor?",
-    "expected": ["core/vector_store.py::fastembed_embedder"]
+    "expected": ["coderag/core/vector_store.py::fastembed_embedder"]
   },
   {
     "question": "Dosya hash'leri nerede tutuluyor?",
-    "expected": ["core/vector_store.py::VectorStore.mark_indexed", "core/vector_store.py::VectorStore.save_hashes"]
+    "expected": ["coderag/core/vector_store.py::VectorStore.mark_indexed", "coderag/core/vector_store.py::VectorStore.save_hashes"]
   },
   {
     "question": "Türkçe soru İngilizce koda nasıl eşleştiriliyor?",
-    "expected": ["core/rag_engine.py::RagEngine.rewrite_query"]
+    "expected": ["coderag/core/rag_engine.py::RagEngine.rewrite_query"]
   },
   {
     "question": "How does the scanner skip binary and oversized files?",
-    "expected": ["core/scanner.py::read_file"]
+    "expected": ["coderag/core/scanner.py::read_file"]
   },
   {
     "question": "Where is the LLM prompt built from the retrieved code?",
-    "expected": ["core/rag_engine.py::build_messages", "core/rag_engine.py::format_snippet"]
+    "expected": ["coderag/core/rag_engine.py::build_messages", "coderag/core/rag_engine.py::format_snippet"]
   },
   {
     "question": "Aynı parça iki kez eklenirse ne olur, parça kimliği nasıl oluşuyor?",
-    "expected": ["core/vector_store.py::chunk_id", "core/vector_store.py::VectorStore.add"]
+    "expected": ["coderag/core/vector_store.py::chunk_id", "coderag/core/vector_store.py::VectorStore.add"]
   },
   {
     "question": "İlerleme adımları terminalde nasıl gösteriliyor?",
-    "expected": ["cli.py::StepPrinter"]
+    "expected": ["coderag/cli.py::StepPrinter"]
   },
   {
     "question": "Reranker nasıl çalışıyor, adayları nasıl yeniden sıralıyor?",
-    "expected": ["core/reranker.py::fastembed_reranker", "core/rag_engine.py::rerank_chunks"]
+    "expected": ["coderag/core/reranker.py::fastembed_reranker", "coderag/core/rag_engine.py::rerank_chunks"]
   },
   {
     "question": "Windows satır sonları (CRLF) nasıl işleniyor?",
-    "expected": ["core/scanner.py::read_file"]
+    "expected": ["coderag/core/scanner.py::read_file"]
   }
 ]

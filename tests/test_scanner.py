@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from core.scanner import scan
+from coderag.core.scanner import scan
 
 
 def _write(path: Path, content: str | bytes = "x = 1\n") -> None:
@@ -52,7 +52,7 @@ def test_skips_binary_and_oversized(tmp_path, monkeypatch):
     _write(tmp_path / "bin_like.py", b"abc\x00def")
     _write(tmp_path / "big.py", "a" * 50)
     _write(tmp_path / "small.py")
-    monkeypatch.setattr("core.scanner.MAX_FILE_BYTES", 20)
+    monkeypatch.setattr("coderag.core.scanner.MAX_FILE_BYTES", 20)
     assert _paths(tmp_path) == ["small.py"]
 
 

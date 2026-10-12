@@ -1,10 +1,10 @@
 import re
 
-import cli
+from coderag import cli
 from langchain_core.messages import AIMessage
 from typer.testing import CliRunner
 
-from core.vector_store import VectorStore
+from coderag.core.vector_store import VectorStore
 from tests.test_vector_store import fake_embed
 
 runner = CliRunner()
@@ -21,7 +21,7 @@ def setup_project(tmp_path, monkeypatch):
         encoding="utf-8",
     )
     monkeypatch.setattr(cli, "open_store", lambda root: VectorStore(root / ".coderag", embed=fake_embed))
-    monkeypatch.setattr("core.rag_engine.build_llm", lambda: FakeLLM())
+    monkeypatch.setattr("coderag.core.rag_engine.build_llm", lambda: FakeLLM())
     monkeypatch.setattr(cli, "open_reranker", lambda: None)  # testte model indirilmesin
 
 
@@ -52,7 +52,7 @@ def test_answer_is_streamed_and_printed_once(tmp_path, monkeypatch):
                 yield AIMessage(piece)
 
     setup_project(tmp_path, monkeypatch)
-    monkeypatch.setattr("core.rag_engine.build_llm", lambda: StreamingFakeLLM())
+    monkeypatch.setattr("coderag.core.rag_engine.build_llm", lambda: StreamingFakeLLM())
     runner.invoke(cli.app, ["index", str(tmp_path)])
 
     result = runner.invoke(cli.app, ["ask", "create_user ne yapar?", "--path", str(tmp_path)])

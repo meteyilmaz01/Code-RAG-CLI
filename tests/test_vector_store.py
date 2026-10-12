@@ -1,7 +1,7 @@
 import zlib
 
-from core.chunker import Chunk
-from core.vector_store import VectorStore, tokenize
+from coderag.core.chunker import Chunk
+from coderag.core.vector_store import VectorStore, tokenize
 
 
 def fake_embed(texts):

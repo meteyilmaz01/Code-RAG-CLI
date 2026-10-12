@@ -4,7 +4,7 @@ from typing import Callable
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from config import (
+from coderag.config import (
     CANDIDATES,
     DEFAULT_LLM_MODELS,
     LLM_MODEL,
@@ -13,9 +13,9 @@ from config import (
     RERANK_CANDIDATES,
     TOP_K,
 )
-from core.chunker import Chunk
-from core.reranker import Reranker
-from core.vector_store import VectorStore, embedding_text
+from coderag.core.chunker import Chunk
+from coderag.core.reranker import Reranker
+from coderag.core.vector_store import VectorStore, embedding_text
 
 RRF_K = 60
 SYMBOL_HINT_NEIGHBOURS = 60  # çok büyük indekste sembol listesi için bakılan en yakın parça sayısı

@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from core.chunker import chunk_file
-from core.scanner import SourceFile
+from coderag.core.chunker import chunk_file
+from coderag.core.scanner import SourceFile
 
 
 def make_source(code: str, language: str = "python") -> SourceFile:
@@ -38,7 +38,7 @@ def test_short_class_stays_in_one_chunk():
 
 
 def test_long_class_is_split_by_method(monkeypatch):
-    monkeypatch.setattr("core.chunker.MAX_CHUNK_CHARS", 40)
+    monkeypatch.setattr("coderag.core.chunker.MAX_CHUNK_CHARS", 40)
     code = (
         "class A:\n"
         '    """Belge."""\n'
@@ -58,7 +58,7 @@ def test_long_class_is_split_by_method(monkeypatch):
 
 
 def test_other_languages_use_splitter_with_line_numbers(monkeypatch):
-    monkeypatch.setattr("core.chunker.MAX_CHUNK_CHARS", 60)
+    monkeypatch.setattr("coderag.core.chunker.MAX_CHUNK_CHARS", 60)
     code = (
         "public class A {\n"
         "    public int One() { return 1; }\n"

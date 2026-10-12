@@ -7,7 +7,7 @@ from typing import Iterator
 
 from pathspec import GitIgnoreSpec
 
-from config import ALWAYS_IGNORE_DIRS, LANGUAGE_BY_EXTENSION, MAX_FILE_BYTES
+from coderag.config import ALWAYS_IGNORE_DIRS, LANGUAGE_BY_EXTENSION, MAX_FILE_BYTES
 
 
 @dataclass
