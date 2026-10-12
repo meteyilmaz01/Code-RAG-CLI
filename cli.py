@@ -42,6 +42,14 @@ class StepPrinter:
         self.started = time.perf_counter()
         self.status.update(f"{escape(step)}...")
 
+    def note(self, text: str) -> None:
+        """Çalışan adımın canlı satırını günceller; kalıcı satır yazmaz."""
+        self.status.update(f"{escape(text)}...")
+
+    def rename(self, text: str) -> None:
+        """Adım bitince yazılacak kalıcı satırın metnini sonuçla değiştirir."""
+        self.step = text
+
     def finish(self) -> None:
         if self.step is None:
             return
@@ -49,6 +57,18 @@ class StepPrinter:
         duration = f" [dim]({elapsed:.1f} sn)[/dim]" if elapsed >= 0.1 else ""
         self.console.print(f"[green]✓[/green] {escape(self.step)}{duration}", highlight=False)
         self.step = None
+
+
+def update_index(root: Path, store: VectorStore, steps: StepPrinter) -> None:
+    """Soru öncesi indeksi değişen dosyalara göre günceller. Değişiklik yoksa sadece hash karşılaştırır."""
+    steps("İndeks değişiklikler için kontrol ediliyor")
+    stats = index_directory(root, store, on_file=lambda file: steps.note(f"İndeksleniyor: {file}"))
+    if stats.added + stats.updated + stats.removed:
+        steps.rename(
+            f"İndeks güncellendi ({stats.added} yeni, {stats.updated} güncellenen, {stats.removed} silinen dosya)"
+        )
+    else:
+        steps.rename("İndeks güncel")
 
 
 @app.command()
@@ -77,6 +97,9 @@ def ask(
     rerank: bool = typer.Option(
         False, "--rerank", help="Sonuçları reranker ile yeniden sırala (daha iyi sıralama, soru başına ~20 sn ek süre)"
     ),
+    update: bool = typer.Option(
+        True, "--update/--no-update", help="Soru öncesi indeksi değişen dosyalara göre güncelle"
+    ),
 ) -> None:
     """Soruyu yanıtla; dosya ve satır referanslarını göster."""
     root = path.resolve()
@@ -87,8 +110,11 @@ def ask(
     try:
         with console.status("Başlıyor...") as status:
             steps = StepPrinter(console, status)
+            store = open_store(root)
+            if update:
+                update_index(root, store, steps)
             engine = RagEngine(
-                open_store(root),
+                store,
                 rerank=open_reranker() if rerank else None,
                 rerank_with_english=RERANK_WITH_ENGLISH,
                 progress=steps,

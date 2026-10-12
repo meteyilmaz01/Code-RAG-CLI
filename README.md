@@ -20,7 +20,8 @@ coderag ask "<soru>" --path <dizin> -c      # kaynak kodu da göster
 coderag ask "<soru>" --rerank               # reranker ile yeniden sırala (daha iyi sıralama, soru başına ~20 sn ek süre)
 ```
 
-İndeks, indekslenen dizinin içindeki `.coderag/` klasörüne yazılır.
+İndeks, indekslenen dizinin içindeki `.coderag/` klasörüne yazılır. `ask` her soru öncesi indeksi değişen
+dosyalara göre kendiliğinden günceller (`--no-update` ile atlanır); ilk indeksi `coderag index` ile oluşturursun.
 
 ## LLM seçimi
 

@@ -48,6 +48,32 @@ def test_second_index_run_reports_unchanged(tmp_path, monkeypatch):
     assert "0 parça" in result.output
 
 
+def test_ask_updates_index_for_changed_files(tmp_path, monkeypatch):
+    setup_project(tmp_path, monkeypatch)
+    runner.invoke(cli.app, ["index", str(tmp_path)])
+
+    result = runner.invoke(cli.app, ["ask", "create_user ne yapar?", "--path", str(tmp_path)])
+    assert "✓ İndeks güncel" in result.output
+
+    (tmp_path / "users.py").write_text("def rename_user(old, new):\n    db.rename(old, new)\n", encoding="utf-8")
+    result = runner.invoke(cli.app, ["ask", "rename_user ne yapar?", "--path", str(tmp_path)])
+    assert result.exit_code == 0, result.output
+    assert "✓ İndeks güncellendi (0 yeni, 1 güncellenen, 0 silinen dosya)" in result.output
+    assert [c.symbol for c in cli.open_store(tmp_path).search_bm25("rename_user", 3)] == ["rename_user"]
+
+
+def test_no_update_flag_skips_index_check(tmp_path, monkeypatch):
+    setup_project(tmp_path, monkeypatch)
+    runner.invoke(cli.app, ["index", str(tmp_path)])
+    (tmp_path / "users.py").write_text("def rename_user(old, new):\n    pass\n", encoding="utf-8")
+
+    result = runner.invoke(cli.app, ["ask", "create_user ne yapar?", "--path", str(tmp_path), "--no-update"])
+    assert result.exit_code == 0, result.output
+    assert "İndeks" not in result.output
+    symbols = [c.symbol for c in cli.open_store(tmp_path).search_bm25("rename_user", 5)]
+    assert "rename_user" not in symbols  # indeks eskisi gibi, yeni fonksiyon yok
+
+
 def test_reranker_is_off_by_default(tmp_path, monkeypatch):
     setup_project(tmp_path, monkeypatch)
     runner.invoke(cli.app, ["index", str(tmp_path)])
