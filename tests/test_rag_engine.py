@@ -1,7 +1,16 @@
 import pytest
 from langchain_core.messages import AIMessage
 
-from core.rag_engine import RagEngine, build_llm, format_snippet, message_text, reciprocal_rank_fusion
+from core.rag_engine import (
+    RagEngine,
+    build_llm,
+    format_snippet,
+    is_doc_file,
+    is_test_file,
+    message_text,
+    noise_weight,
+    reciprocal_rank_fusion,
+)
 from core.vector_store import VectorStore
 from tests.test_vector_store import CHUNKS, fake_embed, make_chunk
 
@@ -124,6 +133,28 @@ def test_without_reranker_order_comes_from_fusion(tmp_path):
     engine = make_engine(tmp_path, RecordingLLM())
     assert engine.rerank is None
     assert engine.retrieve("get_user_by_id")[0].symbol == "get_user_by_id"
+
+
+def test_test_and_doc_chunks_are_demoted_unless_asked_for():
+    code = make_chunk("def load(): ...", "core/loader.py", start=1)
+    test = make_chunk("def test_load(): ...", "tests/test_loader.py", start=1)
+    readme = make_chunk("# Loader", "README.md", start=1)
+    rankings = [[test, readme, code]]  # test ve README üstte, kod en altta
+
+    plain = reciprocal_rank_fusion(rankings, weight=noise_weight("loader nasıl çalışır?"))
+    assert plain[0] == code
+
+    asks_tests = reciprocal_rank_fusion(rankings, weight=noise_weight("loader testleri neyi kontrol ediyor?"))
+    assert asks_tests[0] == test
+
+    asks_docs = reciprocal_rank_fusion(rankings, weight=noise_weight("README'de loader nasıl anlatılıyor?"))
+    assert asks_docs[0] == readme  # doküman cezasız, test hâlâ cezalı
+
+
+def test_is_test_file_and_is_doc_file():
+    assert is_test_file("tests/test_a.py") and is_test_file("pkg/test_b.py") and is_test_file("src/a.test.ts")
+    assert not is_test_file("core/latest.py") and not is_test_file("core/scanner.py")
+    assert is_doc_file("README.md") and not is_doc_file("cli.py")
 
 
 def test_rewrite_prompt_lists_real_symbols(tmp_path):
