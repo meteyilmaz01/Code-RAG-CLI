@@ -42,6 +42,26 @@ def test_index_then_ask(tmp_path, monkeypatch):
     assert "db.insert(name)" in result.output
 
 
+def test_answer_is_streamed_and_printed_once(tmp_path, monkeypatch):
+    class StreamingFakeLLM:
+        def invoke(self, messages):  # sorgu çevirisi adımı invoke kullanır
+            return AIMessage("create_user")
+
+        def stream(self, messages):
+            for piece in ["`create_user` ", "kullanıcıyı ", "kaydeder."]:
+                yield AIMessage(piece)
+
+    setup_project(tmp_path, monkeypatch)
+    monkeypatch.setattr("core.rag_engine.build_llm", lambda: StreamingFakeLLM())
+    runner.invoke(cli.app, ["index", str(tmp_path)])
+
+    result = runner.invoke(cli.app, ["ask", "create_user ne yapar?", "--path", str(tmp_path)])
+    assert result.exit_code == 0, result.output
+    assert result.output.count("kullanıcıyı kaydeder.") == 1  # canlı gösterim + sonradan tekrar yazdırma yok
+    assert "✓ LLM cevabı yazıyor" in result.output
+    assert "Kaynaklar" in result.output
+
+
 def test_second_index_run_reports_unchanged(tmp_path, monkeypatch):
     setup_project(tmp_path, monkeypatch)
     runner.invoke(cli.app, ["index", str(tmp_path)])

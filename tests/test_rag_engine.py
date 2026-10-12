@@ -129,6 +129,36 @@ def test_reranker_can_use_original_question(tmp_path):
     assert seen["query"] == "e-posta gönderen fonksiyon hangisi?"
 
 
+class StreamingLLM(RecordingLLM):
+    def stream(self, messages):
+        self.messages = messages
+        for piece in ["Merhaba ", "", "dünya"]:
+            yield AIMessage(piece)
+
+
+def test_answer_is_streamed_piece_by_piece(tmp_path):
+    pieces = []
+    engine = make_engine(tmp_path, StreamingLLM())
+    answer = engine.ask("get_user_by_id nedir?", on_token=pieces.append)
+    assert pieces == ["Merhaba ", "dünya"]  # boş parçalar iletilmez
+    assert answer.text == "Merhaba dünya"
+    assert answer.sources[0].symbol == "get_user_by_id"
+
+
+def test_streaming_falls_back_to_single_piece_without_stream_support(tmp_path):
+    pieces = []
+    engine = make_engine(tmp_path, RecordingLLM("tek parça cevap"))
+    answer = engine.ask("get_user_by_id nedir?", on_token=pieces.append)
+    assert pieces == ["tek parça cevap"]
+    assert answer.text == "tek parça cevap"
+
+
+def test_ask_without_callback_does_not_stream(tmp_path):
+    llm = StreamingLLM("normal cevap")
+    answer = make_engine(tmp_path, llm).ask("get_user_by_id nedir?")
+    assert answer.text == "normal cevap"  # invoke kullanıldı, stream değil
+
+
 def test_top_k_limits_number_of_sources(tmp_path):
     store = VectorStore(tmp_path, embed=fake_embed)
     store.add(CHUNKS)

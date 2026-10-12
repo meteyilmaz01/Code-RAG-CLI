@@ -4,6 +4,7 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.live import Live
 from rich.markdown import Markdown
 from rich.markup import escape
 from rich.syntax import Syntax
@@ -59,6 +60,30 @@ class StepPrinter:
         self.step = None
 
 
+class AnswerStream:
+    """Cevap parçalarını geldikçe Markdown olarak canlı çizer. İlk parça gelince bekleme göstergesini kapatır."""
+
+    def __init__(self, console: Console, status, steps: StepPrinter) -> None:
+        self.console = console
+        self.status = status
+        self.steps = steps
+        self.live: Live | None = None
+        self.text = ""
+
+    def __call__(self, delta: str) -> None:
+        if self.live is None:
+            self.steps.finish()  # "LLM cevabı yazıyor" adımı ilk parçayla biter
+            self.status.stop()  # rich'te aynı anda tek canlı ekran olabilir
+            self.live = Live(Markdown(""), console=self.console, refresh_per_second=8)
+            self.live.start()
+        self.text += delta
+        self.live.update(Markdown(self.text))
+
+    def close(self) -> None:
+        if self.live is not None:
+            self.live.stop()
+
+
 def update_index(root: Path, store: VectorStore, steps: StepPrinter) -> None:
     """Soru öncesi indeksi değişen dosyalara göre günceller. Değişiklik yoksa sadece hash karşılaştırır."""
     steps("İndeks değişiklikler için kontrol ediliyor")
@@ -108,9 +133,11 @@ def ask(
         console.print(f"[red]İndeks yok.[/red] Önce çalıştır: coderag index {path}")
         raise typer.Exit(1)
 
+    stream = None
     try:
         with console.status("Başlıyor...") as status:
             steps = StepPrinter(console, status)
+            stream = AnswerStream(console, status, steps)
             store = open_store(root)
             if update:
                 update_index(root, store, steps)
@@ -121,13 +148,17 @@ def ask(
                 progress=steps,
                 top_k=top_k,
             )
-            answer = engine.ask(question)
+            answer = engine.ask(question, on_token=stream)
             steps.finish()
     except (RuntimeError, ValueError) as error:
         console.print(f"[red]{error}[/red]")
         raise typer.Exit(1)
+    finally:
+        if stream is not None:
+            stream.close()
 
-    console.print(Markdown(answer.text))
+    if stream.live is None:  # cevap akışla gelmediyse (örn. indeks boş) şimdi yazdır
+        console.print(Markdown(answer.text))
     if not answer.sources:
         return
 

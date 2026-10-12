@@ -112,14 +112,33 @@ class RagEngine:
             self.llm = build_llm()
         return self.llm
 
-    def ask(self, question: str) -> Answer:
+    def ask(self, question: str, on_token: Callable[[str], None] | None = None) -> Answer:
+        """Soruyu yanıtlar. on_token verilirse cevap yazıldıkça parça parça ona iletilir."""
         if self.store.collection.count() == 0:
             return Answer(NOT_FOUND, [])
 
         sources = self.retrieve(question)
         self.report(f"LLM cevabı yazıyor ({len(sources)} kod parçası bağlam olarak veriliyor)")
-        reply = self.get_llm().invoke(build_messages(question, sources))
-        return Answer(message_text(reply.content), sources)
+        return Answer(self.generate(question, sources, on_token), sources)
+
+    def generate(self, question: str, sources: list[Chunk], on_token: Callable[[str], None] | None = None) -> str:
+        messages = build_messages(question, sources)
+        llm = self.get_llm()
+        if on_token is None:
+            return message_text(llm.invoke(messages).content)
+
+        if not hasattr(llm, "stream"):  # akış desteklemeyen model: cevap tek parça gelir
+            text = message_text(llm.invoke(messages).content)
+            on_token(text)
+            return text
+
+        parts = []
+        for piece in llm.stream(messages):
+            delta = message_text(piece.content)
+            if delta:
+                parts.append(delta)
+                on_token(delta)
+        return "".join(parts)
 
 
 def reciprocal_rank_fusion(
