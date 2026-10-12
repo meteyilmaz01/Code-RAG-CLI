@@ -1,0 +1,73 @@
+import pytest
+from langchain_core.messages import AIMessage
+
+from core.rag_engine import RagEngine, build_llm, message_text, reciprocal_rank_fusion
+from core.vector_store import VectorStore
+from tests.test_vector_store import CHUNKS, fake_embed, make_chunk
+
+
+class RecordingLLM:
+    def __init__(self, reply="Cevap [users.py:1-2]"):
+        self.reply = reply
+        self.messages = None
+
+    def invoke(self, messages):
+        self.messages = messages
+        return AIMessage(self.reply)
+
+
+def make_engine(tmp_path, llm):
+    store = VectorStore(tmp_path, embed=fake_embed)
+    store.add(CHUNKS)
+    return RagEngine(store, llm=llm)
+
+
+def test_rrf_prefers_chunks_ranked_high_in_both_lists():
+    a, b, c = make_chunk("a", start=1), make_chunk("b", start=2), make_chunk("c", start=3)
+    merged = reciprocal_rank_fusion([[a, b, c], [b, c, a]])
+    assert merged[0] == b
+    assert len(merged) == 3
+
+
+def test_ask_sends_relevant_code_to_llm_and_returns_sources(tmp_path):
+    llm = RecordingLLM()
+    engine = make_engine(tmp_path, llm)
+    answer = engine.ask("get_user_by_id nasıl çalışıyor?")
+
+    assert answer.text == "Cevap [users.py:1-2]"
+    assert answer.sources[0].symbol == "get_user_by_id"
+    system, human = llm.messages
+    assert "users.py:1-2" in human.content
+    assert "db.users[user_id]" in human.content
+    assert "get_user_by_id nasıl çalışıyor?" in human.content
+
+
+def test_non_english_question_is_rewritten_for_retrieval(tmp_path):
+    class TranslatingLLM(RecordingLLM):
+        def invoke(self, messages):
+            if "search query" in messages[0].content:
+                return AIMessage("send_email smtp")
+            return super().invoke(messages)
+
+    engine = make_engine(tmp_path, TranslatingLLM())
+    answer = engine.ask("e-posta gönderen fonksiyon hangisi?")
+    assert "send_email" in [c.symbol for c in answer.sources]
+
+
+def test_ask_on_empty_index_does_not_call_llm(tmp_path):
+    llm = RecordingLLM()
+    engine = RagEngine(VectorStore(tmp_path, embed=fake_embed), llm=llm)
+    answer = engine.ask("herhangi bir şey")
+    assert answer.sources == []
+    assert "coderag index" in answer.text
+    assert llm.messages is None
+
+
+def test_message_text_handles_part_lists():
+    assert message_text("düz") == "düz"
+    assert message_text([{"type": "text", "text": "a"}, "b"]) == "ab"
+
+
+def test_build_llm_rejects_unknown_provider():
+    with pytest.raises(ValueError):
+        build_llm("bilinmeyen")
