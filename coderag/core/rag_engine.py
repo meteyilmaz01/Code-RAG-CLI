@@ -98,11 +98,17 @@ class RagEngine:
 
     def symbol_hint(self, question: str) -> str:
         """Çeviri adımına verilecek gerçek sembol listesi. Çok büyük indekste soruya yakın parçalarınki."""
-        by_file = self.store.symbols_by_file()
+        # Test fonksiyonları listede olursa model onları sorguya kopyalıyor; soru test istemiyorsa listeden çıkar.
+        skip_tests = not mentions_tests(question)
+        by_file = {
+            path: names
+            for path, names in self.store.symbols_by_file().items()
+            if not (skip_tests and is_test_file(path))
+        }
         if sum(len(names) for names in by_file.values()) > MAX_SYMBOLS_IN_PROMPT:
             near: dict[str, set[str]] = {}
             for chunk in self.store.search_dense(question, SYMBOL_HINT_NEIGHBOURS):
-                if chunk.symbol:
+                if chunk.symbol and not (skip_tests and is_test_file(chunk.file_path)):
                     near.setdefault(chunk.file_path, set()).add(chunk.symbol)
             by_file = {path: sorted(names) for path, names in sorted(near.items())}
         return "\n".join(f"{path}: {', '.join(names)}" for path, names in by_file.items())
@@ -162,9 +168,8 @@ def reciprocal_rank_fusion(
 
 def noise_weight(question: str) -> Callable[[Chunk], float]:
     """Test ve doküman parçalarının puanını düşürür; soru onları istiyorsa dokunmaz."""
-    text = question.lower()
-    wants_tests = "test" in text
-    wants_docs = any(word in text for word in DOC_WORDS)
+    wants_tests = mentions_tests(question)
+    wants_docs = any(word in question.lower() for word in DOC_WORDS)
 
     def weight(chunk: Chunk) -> float:
         if is_test_file(chunk.file_path) and not wants_tests:
@@ -174,6 +179,10 @@ def noise_weight(question: str) -> Callable[[Chunk], float]:
         return 1.0
 
     return weight
+
+
+def mentions_tests(question: str) -> bool:
+    return "test" in question.lower()
 
 
 def is_test_file(path: str) -> bool:

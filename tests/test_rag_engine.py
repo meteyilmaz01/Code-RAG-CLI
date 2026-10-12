@@ -205,6 +205,34 @@ def test_rewrite_prompt_lists_real_symbols(tmp_path):
     assert "Never invent" in prompt
 
 
+def engine_with_test_chunk(tmp_path, llm):
+    store = VectorStore(tmp_path, embed=fake_embed)
+    store.add(CHUNKS + [make_chunk("def test_send_email(): ...", "tests/test_mail.py", 1, "test_send_email")])
+    return RagEngine(store, llm=llm)
+
+
+def test_symbol_hint_leaves_out_test_symbols_by_default(tmp_path):
+    engine = engine_with_test_chunk(tmp_path, RecordingLLM("x"))
+    hint = engine.symbol_hint("e-posta gönderen fonksiyon hangisi?")
+    assert "send_email" in hint
+    assert "test_send_email" not in hint
+    assert "tests/test_mail.py" not in hint
+
+
+def test_symbol_hint_keeps_test_symbols_when_question_is_about_tests(tmp_path):
+    engine = engine_with_test_chunk(tmp_path, RecordingLLM("x"))
+    hint = engine.symbol_hint("send_email testi neyi kontrol ediyor?")
+    assert "tests/test_mail.py: test_send_email" in hint
+
+
+def test_nearby_symbols_branch_also_skips_test_files(tmp_path, monkeypatch):
+    monkeypatch.setattr("coderag.core.rag_engine.MAX_SYMBOLS_IN_PROMPT", 1)  # yakın-komşu koluna zorla
+    engine = engine_with_test_chunk(tmp_path, RecordingLLM("x"))
+    hint = engine.symbol_hint("send email smtp")
+    assert "test_send_email" not in hint
+    assert "send_email" in hint
+
+
 def test_rewrite_prompt_uses_only_nearby_symbols_when_index_is_large(tmp_path, monkeypatch):
     monkeypatch.setattr("coderag.core.rag_engine.MAX_SYMBOLS_IN_PROMPT", 2)  # 3 sembol var: sınırı aşar
     monkeypatch.setattr("coderag.core.rag_engine.SYMBOL_HINT_NEIGHBOURS", 1)
