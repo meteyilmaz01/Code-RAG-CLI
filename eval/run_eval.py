@@ -31,17 +31,21 @@ CONFIGS = [
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parent.parent)
+    parser.add_argument(
+        "--only", type=int, nargs="*", help="Sadece bu sıra numaralı yapılandırmalar (0'dan başlar), örn. --only 0"
+    )
     args = parser.parse_args()
+    configs = [c for i, c in enumerate(CONFIGS) if args.only is None or i in args.only]
 
     questions = json.loads((Path(__file__).parent / "questions.json").read_text(encoding="utf-8"))
     store = VectorStore(args.root / INDEX_DIR)
     validate(store, questions)
 
     rewrites = RewriteCache(args.root / INDEX_DIR / "eval_rewrites.json", RagEngine(store))
-    rerankers = {model: fastembed_reranker(model) for _, model, _ in CONFIGS if model}
+    rerankers = {model: fastembed_reranker(model) for _, model, _ in configs if model}
 
     results = []
-    for name, model, english in CONFIGS:
+    for name, model, english in configs:
         engine = RagEngine(store, rerank=rerankers.get(model), rerank_with_english=english)
         engine.rewrite_query = rewrites.get
         started = time.perf_counter()
