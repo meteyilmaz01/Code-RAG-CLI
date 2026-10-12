@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-Terminalde çalışan, küçük ve **yerel öncelikli bir Code-RAG aracı**. Bir kod tabanını gösterirsin, düz dille
+Terminalde çalışan, küçük ve **yerel öncelikli bir Code-RAG aracı**.Projenin akışı; Bir kod tabanını gösterirsin, düz dille
 soru sorarsın, dayandığı dosya ve satır numaralarını belirterek cevap verir.
 
 Amacı, bir kod soru-cevap hattının nasıl bir araya geldiğini (tarama, parçalama, embedding, hibrit arama,
