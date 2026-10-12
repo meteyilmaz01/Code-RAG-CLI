@@ -13,10 +13,12 @@ RRF_K = 60
 
 SYSTEM_PROMPT = """You are a code assistant answering questions about a codebase.
 You are given code snippets retrieved from the project, each headed by a location such as `src/app.py:10-25`.
+Every code line starts with its real line number followed by `|`.
 
 Rules:
 - Answer using only the provided snippets. If they are not enough, say so plainly instead of guessing.
-- Cite the places your answer relies on by copying the location from the snippet header, e.g. `src/app.py:10-25`.
+- Cite the exact lines your answer relies on, e.g. `src/app.py:17` or `src/app.py:10-25`, using the line numbers
+  shown in the snippets. Never guess a line number.
 - Reply in the same language as the question."""
 
 REWRITE_PROMPT = """Rewrite the user's question as a short English search query for a code search engine.
@@ -121,9 +123,14 @@ def build_messages(question: str, sources: list[Chunk]) -> list:
 
 
 def format_snippet(chunk: Chunk) -> str:
+    """Parçayı başlığı ve her satırın başında gerçek satır numarasıyla biçimlendirir (model numara uydurmasın)."""
     symbol = f" ({chunk.symbol})" if chunk.symbol else ""
     header = f"{chunk.file_path}:{chunk.start_line}-{chunk.end_line}{symbol}"
-    return f"### {header}\n```{chunk.language}\n{chunk.text}\n```"
+    width = len(str(chunk.end_line))
+    numbered = "\n".join(
+        f"{number:>{width}} | {line}" for number, line in enumerate(chunk.text.split("\n"), start=chunk.start_line)
+    )
+    return f"### {header}\n```{chunk.language}\n{numbered}\n```"
 
 
 def message_text(content) -> str:

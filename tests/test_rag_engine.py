@@ -1,7 +1,7 @@
 import pytest
 from langchain_core.messages import AIMessage
 
-from core.rag_engine import RagEngine, build_llm, message_text, reciprocal_rank_fusion
+from core.rag_engine import RagEngine, build_llm, format_snippet, message_text, reciprocal_rank_fusion
 from core.vector_store import VectorStore
 from tests.test_vector_store import CHUNKS, fake_embed, make_chunk
 
@@ -124,6 +124,13 @@ def test_without_reranker_order_comes_from_fusion(tmp_path):
     engine = make_engine(tmp_path, RecordingLLM())
     assert engine.rerank is None
     assert engine.retrieve("get_user_by_id")[0].symbol == "get_user_by_id"
+
+
+def test_snippet_lines_carry_their_real_line_numbers():
+    chunk = make_chunk("a = 1\nb = 2\nc = 3", "config.py", start=9, symbol=None)
+    snippet = format_snippet(chunk)
+    assert "### config.py:9-11" in snippet
+    assert " 9 | a = 1\n10 | b = 2\n11 | c = 3" in snippet
 
 
 def test_ask_on_empty_index_does_not_call_llm(tmp_path):
