@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-Terminalde çalışan, küçük ve **yerel öncelikli bir Code-RAG aracı**.Projenin akışı; Bir kod tabanını gösterirsin, düz dille
+Terminalde çalışan, küçük ve **yerel öncelikli bir Code-RAG aracı**. Projenin akışı: bir kod tabanını gösterirsin, düz dille
 soru sorarsın, dayandığı dosya ve satır numaralarını belirterek cevap verir.
 
 Amacı, bir kod soru-cevap hattının nasıl bir araya geldiğini (tarama, parçalama, embedding, hibrit arama,
@@ -199,18 +199,6 @@ Bu projeyi geliştirirken öğrendiklerim, konulara göre gruplandı. Gerektiği
 - Prompt tasarımı: modelin satır numarası uydurmaması için her kod satırını numaralamak ve cevabı verilen
   parçalarla sınırlamak.
 - Cevabı akış hâlinde göstermek ve adım adım ilerleme vererek yavaş bir aracı hızlı hissettirmek.
-
-**Yazılım mühendisliği**
-- Tek işi yapan küçük modüller ve dışarıdan verilen bağımlılıklar (embedder, reranker ve LLM parametredir);
-  böylece her şey model indirmeden test edilebiliyor.
-- pytest ile test: sahte nesneler, monkeypatch ve Typer'ın test çalıştırıcısıyla CLI testleri.
-- SHA-256 dosya hash'leriyle artımlı indeksleme ve `pathspec` ile `.gitignore` işleme (`scanner.py`, `indexer.py`).
-- Typer ve Rich ile CLI: canlı durum satırı, akışlı Markdown ve işe yarar `--help` çıktısı.
-- Python projesi paketlemek: `pyproject.toml`, düzgün paket yapısı, komut giriş noktaları ve isteğe bağlı bağımlılık grupları.
-- Git düzeni: iç içe geçmiş işleri ayrı commit'lere bölmek, uzaktaki değişikliklerin üstüne rebase yapmak ve
-  nedenini anlatan commit mesajları yazmak.
-- Açık kaynak temelleri: lisans, sınırlamaları söyleyen bir README ve `.gitignore`.
-- Windows ayrıntıları: satır numaraları ve hash'ler tutarlı kalsın diye CRLF/LF normalizasyonu, kabuk tırnakları ve konsol kodlamaları.
 
 **Bana bir şey öğreten hatalar**
 - `BM25Okapi` çok küçük koleksiyonlarda negatif skor verdi ve kelime araması hiçbir şey bulmadı; `BM25Plus`'a

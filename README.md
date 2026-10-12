@@ -203,19 +203,6 @@ What building this project taught me, grouped by topic. Where it helps, the file
   and restricting answers to the supplied snippets.
 - Streaming answers and showing step-by-step progress so a slow tool still feels responsive.
 
-**Software engineering**
-- Small single-purpose modules with injected dependencies (embedder, reranker and LLM are parameters), which
-  makes everything testable without downloading models.
-- Testing with pytest: fakes, monkeypatching and CLI tests with Typer's test runner.
-- Incremental indexing with SHA-256 file hashes, and `.gitignore` handling with `pathspec` (`scanner.py`, `indexer.py`).
-- Building a CLI with Typer and Rich: live status, streaming Markdown and useful `--help` output.
-- Packaging a Python project: `pyproject.toml`, a proper package layout, console entry points and optional
-  dependency groups.
-- Git hygiene: splitting interleaved work into separate commits, rebasing onto remote changes, and writing
-  commit messages that explain why.
-- Open-source basics: a license, a README that states limitations, and a `.gitignore`.
-- Windows details: CRLF/LF normalisation so line numbers and hashes stay stable, shell quoting and console encodings.
-
 **Mistakes that taught me something**
 - `BM25Okapi` returned negative scores on very small corpora, so keyword search found nothing; switching to
   `BM25Plus` fixed it. Library assumptions deserve a test on tiny inputs.
